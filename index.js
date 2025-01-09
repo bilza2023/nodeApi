@@ -1,4 +1,3 @@
-// Dependencies
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -10,18 +9,32 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// MongoDB Connection
-mongoose.connect("mongodb+srv://bilza2023:bils32611@skillzaadb.fswow27.mongodb.net/skillzaaDb", {
+// MongoDB Connections
+const onlineConnection = mongoose.createConnection(process.env.ONLINE_MONGO_URI || "mongodb+srv://bilza2023:bils32611@skillzaadb.fswow27.mongodb.net/skillzaaDb", {
     useNewUrlParser: true,
     useUnifiedTopology: true
 });
 
-const db = mongoose.connection;
-db.on('error', (error) => {
-    throw new Error(error);
+const localConnection = mongoose.createConnection(process.env.LOCAL_MONGO_URI || "mongodb://admin:password@localhost:27017/localDb?authSource=admin", {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
 });
-db.once('open', () => {
-    console.log('Connected to MongoDB');
+
+// Connection error handling
+onlineConnection.on('error', (error) => {
+    console.error('Online MongoDB connection error:', error);
+});
+
+localConnection.on('error', (error) => {
+    console.error('Local MongoDB connection error:', error);
+});
+
+onlineConnection.once('open', () => {
+    console.log('Connected to Online MongoDB');
+});
+
+localConnection.once('open', () => {
+    console.log('Connected to Local MongoDB');
 });
 
 // User Schema
@@ -31,20 +44,55 @@ const userSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 
-const User = mongoose.model('User', userSchema);
+// Create models for both connections
+const OnlineUser = onlineConnection.model('User', userSchema);
+const LocalUser = localConnection.model('User', userSchema);
 
 app.get('/', (req, res) => res.status(200).json({ message: "Welcome to API" }));
 
-
-// Routes
-app.get('/api/users', async (req, res) => {
+// Routes for online database
+app.get('/db1', async (req, res) => {
     try {
-        const users = await User.find();
+        const users = await OnlineUser.find();
         res.json(users);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 });
+app.get('/db2', async (req, res) => {
+    try {
+        const users = await LocalUser.find();
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Routes for local database
+// Route to add a user to the local database
+
+localConnection.once('open', async () => {
+    console.log('Connected to Local MongoDB');
+
+    // Insert sample data for testing
+    try {
+        const existingUser = await LocalUser.findOne({ email: "test@example.com" });
+        if (!existingUser) {
+            const sampleData = [
+                { name: "Test User 1", email: "test1@example.com" },
+                { name: "Test User 2", email: "test2@example.com" },
+                { name: "Test User 3", email: "test3@example.com" }
+            ];
+            await LocalUser.insertMany(sampleData);
+            console.log('Sample data inserted into Local MongoDB');
+        } else {
+            console.log('Sample data already exists in Local MongoDB');
+        }
+    } catch (error) {
+        console.error('Error inserting sample data:', error.message);
+    }
+});
+
 
 // Start server
 const PORT = process.env.PORT || 3000;
