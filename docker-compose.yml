@@ -1,10 +1,16 @@
-version: '3.8'
 
 services:
-  api:
-    build: .
+  ui:
+    image: taleemhelp/ui:1.15
+    restart: unless-stopped
     ports:
       - "3000:3000"
+      
+  api:
+    image: taleemhelp/nodeapi:0.1
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
     environment:
       - ONLINE_MONGO_URI=mongodb+srv://bilza2023:bils32611@skillzaadb.fswow27.mongodb.net/skillzaaDb
       - LOCAL_MONGO_URI=mongodb://admin:password@local_mongo:27017/localDb?authSource=admin
@@ -13,6 +19,7 @@ services:
 
   local_mongo:
     image: mongo:latest
+    restart: unless-stopped
     ports:
       - "27017:27017"
     environment:
