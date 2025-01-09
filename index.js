@@ -10,10 +10,6 @@ app.use(cors());
 app.use(express.json());
 
 // MongoDB Connections
-const onlineConnection = mongoose.createConnection(process.env.ONLINE_MONGO_URI || "mongodb+srv://bilza2023:bils32611@skillzaadb.fswow27.mongodb.net/skillzaaDb", {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-});
 
 const localConnection = mongoose.createConnection(process.env.LOCAL_MONGO_URI || "mongodb://admin:password@localhost:27017/localDb?authSource=admin", {
     useNewUrlParser: true,
@@ -21,18 +17,12 @@ const localConnection = mongoose.createConnection(process.env.LOCAL_MONGO_URI ||
 });
 
 // Connection error handling
-onlineConnection.on('error', (error) => {
-    console.error('Online MongoDB connection error:', error);
-});
 
 localConnection.on('error', (error) => {
     console.error('Local MongoDB connection error:', error);
 });
 
-onlineConnection.once('open', () => {
-    console.log('Connected to Online MongoDB');
-});
-
+``
 localConnection.once('open', () => {
     console.log('Connected to Local MongoDB');
 });
@@ -45,21 +35,13 @@ const userSchema = new mongoose.Schema({
 });
 
 // Create models for both connections
-const OnlineUser = onlineConnection.model('User', userSchema);
 const LocalUser = localConnection.model('User', userSchema);
 
 app.get('/', (req, res) => res.status(200).json({ message: "Welcome to API" }));
 
 // Routes for online database
-app.get('/db1', async (req, res) => {
-    try {
-        const users = await OnlineUser.find();
-        res.json(users);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
-app.get('/db2', async (req, res) => {
+
+app.get('/db', async (req, res) => {
     try {
         const users = await LocalUser.find();
         res.json(users);
